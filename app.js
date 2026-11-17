@@ -76,12 +76,59 @@ async function dashboard() {
     const sub = document.createElement('span'); sub.textContent = `${item.status.toUpperCase()} · ${item.code}`; entry.append(sub); $('savedGames').append(entry);
   }
 }
+// Lobby ship picker: search box, empire filter, and the matching ships grouped by empire with BPV.
+let designCatalog = [], pickerEmpire = '', pickedDesign = '';
+const OTHER_EMPIRE = 'Other';
+const empireOf = item => item.empire || OTHER_EMPIRE;
 async function refreshDesigns() {
-  const catalog = await api('/designs');
-  $('designSelect').replaceChildren();
-  for (const item of catalog) {const option = document.createElement('option'); option.value = item.id; option.textContent = item.name; $('designSelect').append(option);}
-  if (!catalog.length) {const option = document.createElement('option'); option.value = ''; option.textContent = 'No ships in the host library'; $('designSelect').append(option);}
+  designCatalog = await api('/designs');
+  if (!designCatalog.some(item => item.id === pickedDesign)) pickedDesign = '';
+  if (pickerEmpire && !designCatalog.some(item => empireOf(item) === pickerEmpire)) pickerEmpire = '';
+  renderDesignPicker();
 }
+function pickerMatches() {
+  const words = $('shipSearch').value.toLowerCase().split(/\s+/).filter(Boolean);
+  return designCatalog.filter(item => (!pickerEmpire || empireOf(item) === pickerEmpire)
+    && words.every(word => `${empireOf(item)} ${item.name}`.toLowerCase().includes(word)));
+}
+function renderDesignPicker() {
+  const empires = [...new Set(designCatalog.map(empireOf))].sort((a, b) => (a === OTHER_EMPIRE) - (b === OTHER_EMPIRE) || a.localeCompare(b));
+  $('empireFilter').replaceChildren(...(empires.length > 1 ? ['', ...empires] : []).map(empire => {
+    const chip = document.createElement('button'); chip.type = 'button'; chip.className = 'empire-chip';
+    chip.textContent = empire || 'All'; chip.classList.toggle('active', empire === pickerEmpire);
+    chip.setAttribute('aria-pressed', String(empire === pickerEmpire));
+    chip.onclick = () => {pickerEmpire = empire; renderDesignPicker();};
+    return chip;
+  }));
+  const matches = pickerMatches();
+  // A selection hidden by the search or filter is dropped, so the ship added is always one on screen.
+  if (!matches.some(item => item.id === pickedDesign)) pickedDesign = '';
+  const list = $('designList'); list.replaceChildren();
+  if (!designCatalog.length) {list.append(Object.assign(document.createElement('p'), {className: 'hint design-empty', textContent: 'No ships in the host library.'})); return;}
+  if (!matches.length) {list.append(Object.assign(document.createElement('p'), {className: 'hint design-empty', textContent: 'No ships match.'})); return;}
+  const groups = new Map();
+  for (const item of matches) {if (!groups.has(empireOf(item))) groups.set(empireOf(item), []); groups.get(empireOf(item)).push(item);}
+  for (const empire of empires.filter(e => groups.has(e))) {
+    const heading = document.createElement('div'); heading.className = 'design-group'; heading.textContent = empire;
+    list.append(heading);
+    for (const item of groups.get(empire).sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}))) {
+      const row = document.createElement('label'); row.className = 'design-option';
+      const radio = Object.assign(document.createElement('input'), {type: 'radio', name: 'design', value: item.id, required: true, checked: item.id === pickedDesign});
+      radio.onchange = () => {pickedDesign = item.id;};
+      const name = Object.assign(document.createElement('span'), {className: 'design-name', textContent: item.name});
+      const bpv = Object.assign(document.createElement('span'), {className: 'design-bpv', textContent: item.bpv ? `BPV ${item.bpv}` : ''});
+      row.append(radio, name, bpv); list.append(row);
+    }
+  }
+}
+$('shipSearch').oninput = renderDesignPicker;
+// Enter in the search picks the first match instead of submitting.
+$('shipSearch').onkeydown = event => {
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  const first = $('designList').querySelector('input[name=design]');
+  if (first) {first.checked = true; pickedDesign = first.value; first.focus();}
+};
 async function enterGame(value) {
   closeSpectator(); stopTwitch();
   station?.dispose?.();
@@ -435,7 +482,7 @@ $('readyButton').onclick = () => run(async () => {game = await api(`/games/${gam
 for (const [id, status] of [['startGame', 'playing'], ['pauseGame', 'paused'], ['reopenLobby', 'lobby']]) {
   $(id).onclick = () => run(async () => {await flush(); game = await api(`/games/${game.id}/status`, 'POST', {status}); renderGame();});
 }
-$('selectShipForm').onsubmit = event => {event.preventDefault(); run(async () => {game = await api(`/games/${game.id}/ships`, 'POST', {design_id: $('designSelect').value, name: $('shipName').value.trim()}); $('shipName').value = ''; renderGame();});};
+$('selectShipForm').onsubmit = event => {event.preventDefault(); run(async () => {game = await api(`/games/${game.id}/ships`, 'POST', {design_id: pickedDesign, name: $('shipName').value.trim()}); $('shipName').value = ''; renderGame();});};
 async function advanceImpulse(source) {
   advancingImpulse = true; renderGame();
   try {

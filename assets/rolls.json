@@ -260,7 +260,8 @@
       "label": "APR",
       "chartLabel": "APR",
       "associatedBoxes": [
-        "APR"
+        "APR",
+        "AWR"
       ]
     },
     {
@@ -277,7 +278,10 @@
         "Dark Matter Torpedo",
         "Quantum Transporters",
         "Ion Cannon",
-        "IPG"
+        "IPG",
+        "AWR",
+        "ISG",
+        "Stasis Field Generator"
       ]
     },
     {
@@ -368,7 +372,8 @@
       "chartLabel": "Center\nW En",
       "associatedBoxes": [
         "Center Warp",
-        "Quantum Transporters"
+        "Quantum Transporters",
+        "AWR"
       ]
     },
     {
@@ -393,7 +398,8 @@
         "Heavy Hyper Cannon",
         "SC",
         "TE-Missiles",
-        "IPG"
+        "IPG",
+        "ISG"
       ]
     },
     {
@@ -469,7 +475,8 @@
         "Phaser-Q3",
         "Phaser-A1",
         "Phaser-A3",
-        "Phaser-Q2"
+        "Phaser-Q2",
+        "Stasis Field Generator"
       ]
     },
     {

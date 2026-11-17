@@ -649,6 +649,22 @@
           "types": [
             "Drone"
           ]
+        },
+        {
+          "name": "AWR",
+          "types": []
+        },
+        {
+          "name": "ISG",
+          "types": [
+            "Drone"
+          ]
+        },
+        {
+          "name": "Stasis Field Generator",
+          "types": [
+            "Phaser"
+          ]
         }
       ]
     },
